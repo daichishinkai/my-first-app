@@ -56,6 +56,7 @@
 | 機能 | 内容 |
 |---|---|
 | 友人との共有 | 曲リストは基本非公開。別途「公開用リスト」を作成し、公開したい曲だけを友人に見せられるようにする |
+| フレンド共有（共通曲表示） | 友だちとリストを共有した際に、「いいね」のように、お互いの共通曲がひと目でわかる仕組みを作る（優先度: かなり低） |
 
 ## 5. UI/UX方針
 
@@ -111,3 +112,13 @@
 - 実際のカラオケの場で、このアプリだけを頼りに、次に歌う曲をキー付きで選べること
 - 曲の登録から検索までを、カラオケの短い待ち時間の中でストレスなく完了できること（操作のシンプルさ）
 - 将来的に友人に勧めた際、抵抗なく使ってもらえる程度に使いやすいこと
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
