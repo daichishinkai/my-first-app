@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,14 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Song } from "@/app/(app)/songs/actions";
 import type { Situation } from "@/app/(app)/situations/actions";
 import { createSituationInline } from "@/app/(app)/situations/actions";
+
+type MusicBrainzSuggestion = {
+  title: string;
+  artist: string;
+};
+
+const MUSICBRAINZ_MIN_QUERY_LENGTH = 2;
+const MUSICBRAINZ_DEBOUNCE_MS = 500;
 
 type SongFormProps = {
   mode: "create" | "edit";
@@ -47,6 +55,60 @@ export function SongForm({
   const [newSituationName, setNewSituationName] = useState("");
   const [isAddingSituation, setIsAddingSituation] = useState(false);
 
+  const [title, setTitle] = useState(initialValues?.title ?? "");
+  const [artist, setArtist] = useState(initialValues?.artist ?? "");
+  const [mbResults, setMbResults] = useState<MusicBrainzSuggestion[]>([]);
+  const [mbLoading, setMbLoading] = useState(false);
+  const [mbSearched, setMbSearched] = useState(false);
+  const [showMbDropdown, setShowMbDropdown] = useState(false);
+
+  useEffect(() => {
+    if (!showMbDropdown) {
+      return;
+    }
+
+    const trimmed = title.trim();
+    if (trimmed.length < MUSICBRAINZ_MIN_QUERY_LENGTH) {
+      setMbResults([]);
+      setMbSearched(false);
+      setMbLoading(false);
+      return;
+    }
+
+    setMbLoading(true);
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/musicbrainz/search?q=${encodeURIComponent(trimmed)}`,
+          { signal: controller.signal },
+        );
+        const data = await res.json();
+        setMbResults(Array.isArray(data.results) ? data.results : []);
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          setMbResults([]);
+        }
+      } finally {
+        setMbLoading(false);
+        setMbSearched(true);
+      }
+    }, MUSICBRAINZ_DEBOUNCE_MS);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [title, showMbDropdown]);
+
+  const handleSelectMbSuggestion = (suggestion: MusicBrainzSuggestion) => {
+    setTitle(suggestion.title);
+    setArtist(suggestion.artist);
+    setShowMbDropdown(false);
+    setMbResults([]);
+    setMbSearched(false);
+  };
+
   const toggleSituation = (id: string) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
@@ -73,21 +135,58 @@ export function SongForm({
 
   return (
     <form action={action} className="flex flex-col gap-6 max-w-md">
-      <div className="flex flex-col gap-2">
+      <div className="relative flex flex-col gap-2">
         <Label htmlFor="title">曲名</Label>
         <Input
           id="title"
           name="title"
           list="title-suggestions"
-          defaultValue={initialValues?.title}
+          value={title}
+          onChange={(e) => {
+            setTitle(e.target.value);
+            setShowMbDropdown(true);
+          }}
+          onFocus={() => setShowMbDropdown(true)}
+          onBlur={() => setShowMbDropdown(false)}
           required
           autoComplete="off"
         />
         <datalist id="title-suggestions">
-          {titleOptions.map((title) => (
-            <option key={title} value={title} />
+          {titleOptions.map((titleOption) => (
+            <option key={titleOption} value={titleOption} />
           ))}
         </datalist>
+        {showMbDropdown && title.trim().length >= MUSICBRAINZ_MIN_QUERY_LENGTH && (
+          <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-56 overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-md">
+            {mbLoading ? (
+              <p className="px-3 py-2 text-sm text-muted-foreground">
+                検索中...
+              </p>
+            ) : mbResults.length > 0 ? (
+              <ul>
+                {mbResults.map((suggestion, index) => (
+                  <li key={`${suggestion.title}-${suggestion.artist}-${index}`}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleSelectMbSuggestion(suggestion)}
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-accent active:bg-accent"
+                    >
+                      <span className="font-medium">{suggestion.title}</span>
+                      <span className="ml-1 text-muted-foreground">
+                        - {suggestion.artist}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : mbSearched ? (
+              <p className="px-3 py-2 text-sm text-muted-foreground">
+                候補がありません
+              </p>
+            ) : null}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">
@@ -96,13 +195,14 @@ export function SongForm({
           id="artist"
           name="artist"
           list="artist-suggestions"
-          defaultValue={initialValues?.artist}
+          value={artist}
+          onChange={(e) => setArtist(e.target.value)}
           required
           autoComplete="off"
         />
         <datalist id="artist-suggestions">
-          {artistOptions.map((artist) => (
-            <option key={artist} value={artist} />
+          {artistOptions.map((artistOption) => (
+            <option key={artistOption} value={artistOption} />
           ))}
         </datalist>
       </div>
