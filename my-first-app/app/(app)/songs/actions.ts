@@ -18,48 +18,6 @@ export type Song = {
   updated_at: string;
 };
 
-export async function getSongs(options?: {
-  query?: string;
-  situationId?: string;
-}): Promise<Song[]> {
-  const { supabase, userId } = await requireUserId();
-
-  let request = supabase.from("songs").select("*").eq("user_id", userId);
-
-  if (options?.situationId) {
-    const { data: links, error: linksError } = await supabase
-      .from("song_situations")
-      .select("song_id")
-      .eq("situation_id", options.situationId);
-
-    if (linksError) {
-      throw new Error(linksError.message);
-    }
-
-    const songIds = links.map((link) => link.song_id);
-    if (songIds.length === 0) {
-      return [];
-    }
-    request = request.in("id", songIds);
-  }
-
-  if (options?.query) {
-    request = request.or(
-      `title.ilike.%${options.query}%,artist.ilike.%${options.query}%`,
-    );
-  }
-
-  const { data, error } = await request.order("created_at", {
-    ascending: false,
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data;
-}
-
 export async function getSongSuggestions(): Promise<
   { title: string; artist: string }[]
 > {

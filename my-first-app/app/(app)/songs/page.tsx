@@ -1,16 +1,16 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { AlertCircle, ChevronRight, Plus, Star } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getSongs, getSongSuggestions } from "@/app/(app)/songs/actions";
+import { SongList } from "@/components/songs/song-list";
+import { requireUserId } from "@/lib/supabase/auth";
 import { getSituation } from "@/app/(app)/situations/actions";
 
 export default function SongsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; situation?: string }>;
+  searchParams: Promise<{ situation?: string }>;
 }) {
   return (
     <div className="flex flex-col gap-6">
@@ -44,18 +44,11 @@ export default function SongsPage({
 async function SongsContent({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; situation?: string }>;
+  searchParams: Promise<{ situation?: string }>;
 }) {
-  const { q, situation: situationId } = await searchParams;
-  const [songs, suggestions, situation] = await Promise.all([
-    getSongs({ query: q, situationId }),
-    getSongSuggestions(),
-    situationId ? getSituation(situationId) : Promise.resolve(null),
-  ]);
-
-  const searchOptions = [
-    ...new Set(suggestions.flatMap((s) => [s.title, s.artist])),
-  ];
+  const { situation: situationId } = await searchParams;
+  const { userId } = await requireUserId();
+  const situation = situationId ? await getSituation(situationId) : null;
 
   return (
     <>
@@ -77,60 +70,7 @@ async function SongsContent({
         </div>
       )}
 
-      <form method="GET" className="flex gap-2">
-        <Input
-          type="text"
-          name="q"
-          list="search-suggestions"
-          placeholder="曲名・歌手名で検索"
-          defaultValue={q}
-          autoComplete="off"
-        />
-        <datalist id="search-suggestions">
-          {searchOptions.map((option) => (
-            <option key={option} value={option} />
-          ))}
-        </datalist>
-        <Button type="submit" variant="outline">
-          検索
-        </Button>
-      </form>
-
-      <div className="flex flex-col divide-y rounded-lg border shadow-sm">
-        {songs.length === 0 && (
-          <p className="p-4 text-sm text-muted-foreground">
-            {q
-              ? "該当する曲が見つかりませんでした"
-              : situation
-                ? "このシチュエーションにはまだ曲がありません"
-                : "まだ曲が登録されていません"}
-          </p>
-        )}
-        {songs.map((song) => (
-          <Link
-            key={song.id}
-            href={`/songs/${song.id}`}
-            className="flex items-center justify-between gap-3 p-4 text-sm hover:bg-accent"
-          >
-            <span className="truncate">{song.title}</span>
-            <span className="flex items-center gap-2 shrink-0 text-muted-foreground">
-              <span className="font-mono text-xs w-8 text-right text-foreground">
-                {song.key_offset > 0
-                  ? `+${song.key_offset}`
-                  : song.key_offset}
-              </span>
-              {song.needs_check && (
-                <AlertCircle className="size-4 text-primary" />
-              )}
-              <span className="flex items-center gap-0.5 text-xs">
-                <Star className="size-3.5 fill-current" />
-                {song.satisfaction}
-              </span>
-              <ChevronRight className="size-4" />
-            </span>
-          </Link>
-        ))}
-      </div>
+      <SongList userId={userId} situationId={situationId} />
     </>
   );
 }

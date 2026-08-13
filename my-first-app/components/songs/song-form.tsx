@@ -10,13 +10,13 @@ import type { Song } from "@/app/(app)/songs/actions";
 import type { Situation } from "@/app/(app)/situations/actions";
 import { createSituationInline } from "@/app/(app)/situations/actions";
 
-type MusicBrainzSuggestion = {
+type ExternalSuggestion = {
   title: string;
   artist: string;
 };
 
-const MUSICBRAINZ_MIN_QUERY_LENGTH = 2;
-const MUSICBRAINZ_DEBOUNCE_MS = 500;
+const EXTERNAL_MIN_QUERY_LENGTH = 2;
+const EXTERNAL_DEBOUNCE_MS = 500;
 
 type SongFormProps = {
   mode: "create" | "edit";
@@ -57,56 +57,73 @@ export function SongForm({
 
   const [title, setTitle] = useState(initialValues?.title ?? "");
   const [artist, setArtist] = useState(initialValues?.artist ?? "");
-  const [mbResults, setMbResults] = useState<MusicBrainzSuggestion[]>([]);
-  const [mbLoading, setMbLoading] = useState(false);
-  const [mbSearched, setMbSearched] = useState(false);
-  const [showMbDropdown, setShowMbDropdown] = useState(false);
+  const [externalResults, setExternalResults] = useState<ExternalSuggestion[]>([]);
+  const [externalLoading, setExternalLoading] = useState(false);
+  const [externalSearched, setExternalSearched] = useState(false);
+  const [showSuggestDropdown, setShowSuggestDropdown] = useState(false);
 
   useEffect(() => {
-    if (!showMbDropdown) {
+    if (!showSuggestDropdown) {
       return;
     }
 
     const trimmed = title.trim();
-    if (trimmed.length < MUSICBRAINZ_MIN_QUERY_LENGTH) {
-      setMbResults([]);
-      setMbSearched(false);
-      setMbLoading(false);
+    if (trimmed.length < EXTERNAL_MIN_QUERY_LENGTH) {
+      setExternalResults([]);
+      setExternalSearched(false);
+      setExternalLoading(false);
       return;
     }
 
-    setMbLoading(true);
+    setExternalLoading(true);
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `/api/musicbrainz/search?q=${encodeURIComponent(trimmed)}`,
-          { signal: controller.signal },
-        );
-        const data = await res.json();
-        setMbResults(Array.isArray(data.results) ? data.results : []);
+        const [mbRes, vocadbRes] = await Promise.allSettled([
+          fetch(`/api/musicbrainz/search?q=${encodeURIComponent(trimmed)}`, {
+            signal: controller.signal,
+          }).then((res) => res.json()),
+          fetch(`/api/vocadb/search?q=${encodeURIComponent(trimmed)}`, {
+            signal: controller.signal,
+          }).then((res) => res.json()),
+        ]);
+
+        const seen = new Set<string>();
+        const merged: ExternalSuggestion[] = [];
+        for (const settled of [mbRes, vocadbRes]) {
+          if (settled.status !== "fulfilled") continue;
+          const results = settled.value?.results;
+          if (!Array.isArray(results)) continue;
+          for (const suggestion of results as ExternalSuggestion[]) {
+            const key = `${suggestion.title}::${suggestion.artist}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            merged.push(suggestion);
+          }
+        }
+        setExternalResults(merged);
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
-          setMbResults([]);
+          setExternalResults([]);
         }
       } finally {
-        setMbLoading(false);
-        setMbSearched(true);
+        setExternalLoading(false);
+        setExternalSearched(true);
       }
-    }, MUSICBRAINZ_DEBOUNCE_MS);
+    }, EXTERNAL_DEBOUNCE_MS);
 
     return () => {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [title, showMbDropdown]);
+  }, [title, showSuggestDropdown]);
 
-  const handleSelectMbSuggestion = (suggestion: MusicBrainzSuggestion) => {
+  const handleSelectSuggestion = (suggestion: ExternalSuggestion) => {
     setTitle(suggestion.title);
     setArtist(suggestion.artist);
-    setShowMbDropdown(false);
-    setMbResults([]);
-    setMbSearched(false);
+    setShowSuggestDropdown(false);
+    setExternalResults([]);
+    setExternalSearched(false);
   };
 
   const toggleSituation = (id: string) => {
@@ -144,10 +161,10 @@ export function SongForm({
           value={title}
           onChange={(e) => {
             setTitle(e.target.value);
-            setShowMbDropdown(true);
+            setShowSuggestDropdown(true);
           }}
-          onFocus={() => setShowMbDropdown(true)}
-          onBlur={() => setShowMbDropdown(false)}
+          onFocus={() => setShowSuggestDropdown(true)}
+          onBlur={() => setShowSuggestDropdown(false)}
           required
           autoComplete="off"
         />
@@ -156,20 +173,20 @@ export function SongForm({
             <option key={titleOption} value={titleOption} />
           ))}
         </datalist>
-        {showMbDropdown && title.trim().length >= MUSICBRAINZ_MIN_QUERY_LENGTH && (
+        {showSuggestDropdown && title.trim().length >= EXTERNAL_MIN_QUERY_LENGTH && (
           <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-56 overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-md">
-            {mbLoading ? (
+            {externalLoading ? (
               <p className="px-3 py-2 text-sm text-muted-foreground">
                 検索中...
               </p>
-            ) : mbResults.length > 0 ? (
+            ) : externalResults.length > 0 ? (
               <ul>
-                {mbResults.map((suggestion, index) => (
+                {externalResults.map((suggestion, index) => (
                   <li key={`${suggestion.title}-${suggestion.artist}-${index}`}>
                     <button
                       type="button"
                       onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => handleSelectMbSuggestion(suggestion)}
+                      onClick={() => handleSelectSuggestion(suggestion)}
                       className="w-full px-3 py-2 text-left text-sm hover:bg-accent active:bg-accent"
                     >
                       <span className="font-medium">{suggestion.title}</span>
@@ -180,7 +197,7 @@ export function SongForm({
                   </li>
                 ))}
               </ul>
-            ) : mbSearched ? (
+            ) : externalSearched ? (
               <p className="px-3 py-2 text-sm text-muted-foreground">
                 候補がありません
               </p>
