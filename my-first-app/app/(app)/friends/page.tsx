@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Music2, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { UpgradeAccountForm } from "@/components/upgrade-account-form";
+import { requireUserId } from "@/lib/supabase/auth";
 import {
   acceptFriendRequest,
   getDisplayName,
@@ -16,7 +18,30 @@ export default function FriendsPage() {
   return (
     <>
       <h1 className="text-2xl font-bold">友だち</h1>
+      <Suspense fallback={<p className="text-sm text-muted-foreground">読み込み中...</p>}>
+        <FriendsContent />
+      </Suspense>
+    </>
+  );
+}
 
+async function FriendsContent() {
+  const { isAnonymous } = await requireUserId();
+
+  if (isAnonymous) {
+    return (
+      <div className="flex flex-col gap-3 rounded-lg border p-4">
+        <h2 className="text-base font-bold">登録して友だち機能を利用</h2>
+        <p className="text-sm text-muted-foreground">
+          メールアドレスとパスワードを登録すると、友だちと曲リストを共有できるようになります。今の曲データはそのまま引き継がれます。
+        </p>
+        <UpgradeAccountForm />
+      </div>
+    );
+  }
+
+  return (
+    <>
       <div className="flex flex-col gap-2">
         <h2 className="flex items-center gap-2 text-sm font-bold text-muted-foreground">
           <UserPlus className="size-4" />

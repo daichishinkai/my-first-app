@@ -47,16 +47,21 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims;
 
-  if (
+  const requiresAuth =
     request.nextUrl.pathname !== "/" &&
-    !user &&
     !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/auth")
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
-    const url = request.nextUrl.clone();
-    url.pathname = "/auth/login";
-    return NextResponse.redirect(url);
+    !request.nextUrl.pathname.startsWith("/auth");
+
+  if (requiresAuth && !user) {
+    // 未ログインの場合はゲスト(匿名)セッションを自動発行してそのまま使えるようにする。
+    // 匿名サインインがSupabase側で無効化されている場合はログイン画面にフォールバックする。
+    const { error } = await supabase.auth.signInAnonymously();
+
+    if (error) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/auth/login";
+      return NextResponse.redirect(url);
+    }
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.
