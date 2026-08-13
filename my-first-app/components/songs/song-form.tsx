@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useFormStatus } from "react-dom";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -334,9 +336,27 @@ export function SongForm({
         </div>
       </div>
 
-      <Button type="submit">
-        {mode === "create" ? "登録する" : "更新する"}
-      </Button>
+      <SubmitButton
+        label={mode === "create" ? "登録する" : "更新する"}
+        pendingLabel={mode === "create" ? "登録中..." : "更新中..."}
+      />
     </form>
+  );
+}
+
+function SubmitButton({
+  label,
+  pendingLabel,
+}: {
+  label: string;
+  pendingLabel: string;
+}) {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button type="submit" disabled={pending}>
+      {pending && <Loader2 className="size-4 animate-spin" />}
+      {pending ? pendingLabel : label}
+    </Button>
   );
 }
