@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Mic2 } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
+import { BottomNav } from "@/components/bottom-nav";
 
 export default function AppLayout({
   children,
@@ -18,9 +19,10 @@ export default function AppLayout({
           <LogoutButton />
         </div>
       </nav>
-      <main className="flex-1 w-full max-w-md mx-auto px-4 py-6 flex flex-col gap-8 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
+      <main className="flex-1 w-full max-w-md mx-auto px-4 py-6 flex flex-col gap-8 pb-[calc(env(safe-area-inset-bottom)+5.5rem)]">
         {children}
       </main>
+      <BottomNav />
     </div>
   );
 }

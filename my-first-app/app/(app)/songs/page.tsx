@@ -1,7 +1,5 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SongList } from "@/components/songs/song-list";
 import { requireUserId } from "@/lib/supabase/auth";
@@ -27,16 +25,6 @@ export default function SongsPage({
       <Suspense fallback={<p className="text-sm text-muted-foreground">読み込み中...</p>}>
         <SongsContent searchParams={searchParams} />
       </Suspense>
-
-      <Button
-        asChild
-        size="icon"
-        className="fixed right-6 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] z-20 size-14 rounded-full shadow-lg"
-      >
-        <Link href="/songs/new" aria-label="曲を登録する">
-          <Plus className="size-6" />
-        </Link>
-      </Button>
     </div>
   );
 }
