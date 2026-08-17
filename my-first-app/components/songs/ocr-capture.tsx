@@ -82,6 +82,9 @@ export function OcrCapture({ onResult }: OcrCaptureProps) {
     try {
       const { createWorker, PSM } = await import("tesseract.js");
       const worker = await createWorker("jpn", undefined, {
+        workerPath: "/tesseract/worker.min.js",
+        corePath: "/tesseract/core/",
+        langPath: "/tesseract/lang-data/",
         logger: (m) => {
           if (m.status === "recognizing text") {
             setProgress(Math.round(m.progress * 100));
