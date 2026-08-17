@@ -144,7 +144,7 @@ export async function createSong(formData: FormData) {
   await syncSongSituations(supabase, data.id, situationIds);
 
   revalidatePath("/songs");
-  redirect(`/songs/${data.id}`);
+  redirect("/protected");
 }
 
 export async function updateSong(id: string, formData: FormData) {

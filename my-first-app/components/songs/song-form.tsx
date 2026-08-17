@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Song } from "@/app/(app)/songs/actions";
 import type { Situation } from "@/app/(app)/situations/actions";
 import { createSituationInline } from "@/app/(app)/situations/actions";
+import { OcrCapture } from "@/components/songs/ocr-capture";
 
 type ExternalSuggestion = {
   title: string;
@@ -154,6 +155,15 @@ export function SongForm({
 
   return (
     <form action={action} className="flex flex-col gap-6 max-w-md">
+      {mode === "create" && (
+        <OcrCapture
+          onResult={(result) => {
+            if (result.title) setTitle(result.title);
+            if (result.artist) setArtist(result.artist);
+          }}
+        />
+      )}
+
       <div className="relative flex flex-col gap-2">
         <Label htmlFor="title">曲名</Label>
         <Input
