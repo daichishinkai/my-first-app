@@ -8,6 +8,7 @@ import {
   updateSong,
 } from "@/app/(app)/songs/actions";
 import { getSituations } from "@/app/(app)/situations/actions";
+import { getVocalRange } from "@/app/(app)/settings/actions";
 
 export default function EditSongPage({
   params,
@@ -30,12 +31,13 @@ async function EditSongFormContent({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [song, suggestions, allSituations, selectedSituationIds] =
+  const [song, suggestions, allSituations, selectedSituationIds, vocalRange] =
     await Promise.all([
       getSong(id),
       getSongSuggestions(),
       getSituations(),
       getSongSituationIds(id),
+      getVocalRange(),
     ]);
 
   if (!song) {
@@ -51,6 +53,7 @@ async function EditSongFormContent({
       suggestions={suggestions}
       allSituations={allSituations}
       selectedSituationIds={selectedSituationIds}
+      vocalRange={vocalRange}
       initialValues={song}
     />
   );

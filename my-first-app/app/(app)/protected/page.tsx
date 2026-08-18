@@ -1,6 +1,14 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Search, PlusCircle, Tags, Users, ChevronRight, Pencil } from "lucide-react";
+import {
+  Search,
+  PlusCircle,
+  Tags,
+  Users,
+  ChevronRight,
+  Pencil,
+  SlidersHorizontal,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -49,7 +57,7 @@ export default function HomePage() {
         </Suspense>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           asChild
           variant="outline"
@@ -62,7 +70,19 @@ export default function HomePage() {
             <ChevronRight className="size-3.5" />
           </Link>
         </Button>
-        <Suspense fallback={<div className="h-8 w-32" />}>
+        <Button
+          asChild
+          variant="outline"
+          size="sm"
+          className="w-fit gap-1.5 text-muted-foreground"
+        >
+          <Link href="/settings/vocal-range">
+            <SlidersHorizontal className="size-3.5 text-primary" />
+            声域設定
+            <ChevronRight className="size-3.5" />
+          </Link>
+        </Button>
+        <Suspense fallback={<div className="h-8 w-8" />}>
           <ShareLinkButton />
         </Suspense>
         <ThemeToggle />

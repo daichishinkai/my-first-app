@@ -14,6 +14,8 @@ export type Song = {
   satisfaction: number;
   is_public: boolean;
   memo: string;
+  original_lowest_note: number | null;
+  original_highest_note: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -115,6 +117,17 @@ async function syncSongSituations(
 }
 
 function readSongFormData(formData: FormData) {
+  const originalLowestRaw = formData.get("original_lowest_note");
+  const originalHighestRaw = formData.get("original_highest_note");
+  const originalLowestNote =
+    originalLowestRaw === null || originalLowestRaw === ""
+      ? null
+      : Number(originalLowestRaw);
+  const originalHighestNote =
+    originalHighestRaw === null || originalHighestRaw === ""
+      ? null
+      : Number(originalHighestRaw);
+
   return {
     title: String(formData.get("title") ?? "").trim(),
     artist: String(formData.get("artist") ?? "").trim(),
@@ -123,6 +136,8 @@ function readSongFormData(formData: FormData) {
     satisfaction: Number(formData.get("satisfaction") ?? 3),
     is_public: formData.get("is_public") === "on",
     memo: String(formData.get("memo") ?? "").trim(),
+    original_lowest_note: originalLowestNote,
+    original_highest_note: originalHighestNote,
   };
 }
 

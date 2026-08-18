@@ -10,8 +10,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import type { Song } from "@/app/(app)/songs/actions";
 import type { Situation } from "@/app/(app)/situations/actions";
+import type { VocalRange } from "@/app/(app)/settings/actions";
 import { createSituationInline } from "@/app/(app)/situations/actions";
 import { OcrCapture } from "@/components/songs/ocr-capture";
+import { NoteSelect } from "@/components/music/note-select";
+import { DEFAULT_NOTE_SEMITONE, formatNote, suggestKeyOffset } from "@/lib/music/notes";
 
 type ExternalSuggestion = {
   title: string;
@@ -27,6 +30,7 @@ type SongFormProps = {
   suggestions: { title: string; artist: string }[];
   allSituations: Situation[];
   selectedSituationIds?: string[];
+  vocalRange: Pick<VocalRange, "lowest_note" | "highest_note"> | null;
   initialValues?: Pick<
     Song,
     | "title"
@@ -36,6 +40,8 @@ type SongFormProps = {
     | "satisfaction"
     | "is_public"
     | "memo"
+    | "original_lowest_note"
+    | "original_highest_note"
   >;
 };
 
@@ -45,9 +51,28 @@ export function SongForm({
   suggestions,
   allSituations,
   selectedSituationIds,
+  vocalRange,
   initialValues,
 }: SongFormProps) {
   const [keyOffset, setKeyOffset] = useState(initialValues?.key_offset ?? 0);
+  const [hasOriginalRange, setHasOriginalRange] = useState(
+    initialValues?.original_lowest_note != null,
+  );
+  const [originalLowest, setOriginalLowest] = useState(
+    initialValues?.original_lowest_note ?? DEFAULT_NOTE_SEMITONE - 12,
+  );
+  const [originalHighest, setOriginalHighest] = useState(
+    initialValues?.original_highest_note ?? DEFAULT_NOTE_SEMITONE + 12,
+  );
+  const keySuggestion =
+    hasOriginalRange && vocalRange
+      ? suggestKeyOffset(
+          vocalRange.lowest_note,
+          vocalRange.highest_note,
+          originalLowest,
+          originalHighest,
+        )
+      : null;
   const [satisfaction, setSatisfaction] = useState(
     initialValues?.satisfaction ?? 3,
   );
@@ -260,6 +285,96 @@ export function SongForm({
           </Button>
         </div>
         <input type="hidden" name="key_offset" value={keyOffset} />
+      </div>
+
+      <div className="flex flex-col gap-2 rounded-lg border p-3">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="has_original_range"
+            checked={hasOriginalRange}
+            onCheckedChange={(checked) => setHasOriginalRange(checked === true)}
+          />
+          <Label htmlFor="has_original_range">原曲の音域がわかる</Label>
+        </div>
+
+        {hasOriginalRange && (
+          <div className="flex flex-col gap-3 pt-1">
+            <div className="flex flex-col gap-2">
+              <Label>原曲の最低音</Label>
+              <NoteSelect
+                idPrefix="original-lowest"
+                value={originalLowest}
+                onChange={setOriginalLowest}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label>原曲の最高音</Label>
+              <NoteSelect
+                idPrefix="original-highest"
+                value={originalHighest}
+                onChange={setOriginalHighest}
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              入力中の原曲音域: {formatNote(originalLowest)} 〜 {formatNote(originalHighest)}
+            </p>
+
+            {vocalRange ? (
+              keySuggestion && (
+                <div className="flex flex-col gap-1.5 rounded-md bg-accent p-3 text-sm">
+                  <p>
+                    おすすめキー:{" "}
+                    <span className="font-mono font-bold">
+                      {keySuggestion.offset > 0
+                        ? `+${keySuggestion.offset}`
+                        : keySuggestion.offset}
+                    </span>
+                    {keySuggestion.fitsPerfectly
+                      ? "（声域にぴったり収まります）"
+                      : `（${[
+                          keySuggestion.overflowHigh > 0
+                            ? `高音側が${keySuggestion.overflowHigh}半音届かない`
+                            : null,
+                          keySuggestion.overflowLow > 0
+                            ? `低音側が${keySuggestion.overflowLow}半音出せない`
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join("・")}見込みです）`}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-fit"
+                    onClick={() => setKeyOffset(keySuggestion.offset)}
+                  >
+                    このキーを設定する
+                  </Button>
+                </div>
+              )
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                声域を登録すると、この曲のおすすめキーが表示されます（
+                <a href="/settings/vocal-range" className="underline">
+                  声域設定へ
+                </a>
+                ）
+              </p>
+            )}
+          </div>
+        )}
+
+        <input
+          type="hidden"
+          name="original_lowest_note"
+          value={hasOriginalRange ? originalLowest : ""}
+        />
+        <input
+          type="hidden"
+          name="original_highest_note"
+          value={hasOriginalRange ? originalHighest : ""}
+        />
       </div>
 
       <div className="flex items-center gap-2">

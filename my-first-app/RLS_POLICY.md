@@ -2,7 +2,7 @@
 
 カラオケ選曲メモのSupabaseデータベースにおけるRLSポリシーの要件・現状をまとめたもの。CLAUDE.mdの要件（「ユーザーごとに独立した曲リストを持つ（他人のリストは基本見えない）」「曲リストは基本非公開、公開したい曲だけを見せられるようにする」）を、データベース層でどう担保しているかを記録する。
 
-対応するSQLの実体は `supabase/migrations/` 配下（0001, 0003, 0005, 0006）。
+対応するSQLの実体は `supabase/migrations/` 配下（0001, 0003, 0005, 0006, 0009）。
 
 ## 基本方針
 
@@ -21,7 +21,18 @@
 | songs_delete_own | DELETE | `auth.uid() = user_id` |
 | songs_select_public | SELECT | `is_public = true AND auth.role() = 'authenticated'`（ログイン済みユーザーのみ、公開フラグの曲を閲覧可） |
 
-満足度・キー・要確認フラグなど個人的な評価データは、公開フラグを立てない限り本人以外には一切見えない。
+満足度・キー・要確認フラグなど個人的な評価データは、公開フラグを立てない限り本人以外には一切見えない。`original_lowest_note`/`original_highest_note`（原曲の音域、任意項目）も同様に本人のみ。
+
+## user_vocal_ranges（ユーザーの声域）
+
+| ポリシー | 操作 | 条件 |
+|---|---|---|
+| user_vocal_ranges_select_own | SELECT | `auth.uid() = user_id` |
+| user_vocal_ranges_insert_own | INSERT | `auth.uid() = user_id` |
+| user_vocal_ranges_update_own | UPDATE | USING/CHECK 共に `auth.uid() = user_id` |
+| user_vocal_ranges_delete_own | DELETE | `auth.uid() = user_id` |
+
+声域は完全に個人情報のため、公開・共有の対象外。常に本人のみアクセス可能（`user_id`を主キーとし1ユーザー1行）。
 
 ## situations（シチュエーション）
 

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { SongForm } from "@/components/songs/song-form";
 import { createSong, getSongSuggestions } from "@/app/(app)/songs/actions";
 import { getSituations } from "@/app/(app)/situations/actions";
+import { getVocalRange } from "@/app/(app)/settings/actions";
 
 export default function NewSongPage() {
   return (
@@ -15,9 +16,10 @@ export default function NewSongPage() {
 }
 
 async function NewSongFormContent() {
-  const [suggestions, allSituations] = await Promise.all([
+  const [suggestions, allSituations, vocalRange] = await Promise.all([
     getSongSuggestions(),
     getSituations(),
+    getVocalRange(),
   ]);
 
   return (
@@ -26,6 +28,7 @@ async function NewSongFormContent() {
       action={createSong}
       suggestions={suggestions}
       allSituations={allSituations}
+      vocalRange={vocalRange}
     />
   );
 }

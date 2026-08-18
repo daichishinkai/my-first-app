@@ -18,16 +18,16 @@ export function CopyShareLinkButton({ userId }: { userId: string }) {
     <Button
       type="button"
       variant="outline"
-      size="sm"
-      className="w-fit gap-1.5 text-muted-foreground"
+      size="icon"
+      className="text-muted-foreground"
       onClick={handleCopy}
+      aria-label={copied ? "コピーしました" : "公開用URLをコピー"}
     >
       {copied ? (
         <Check className="size-3.5" />
       ) : (
         <Share2 className="size-3.5" />
       )}
-      {copied ? "コピーしました" : "公開用URLをコピー"}
     </Button>
   );
 }
