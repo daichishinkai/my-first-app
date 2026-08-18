@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Mic2 } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
@@ -22,7 +23,13 @@ export default function AppLayout({
       <main className="flex-1 w-full max-w-md mx-auto px-4 py-6 flex flex-col gap-8 pb-[calc(env(safe-area-inset-bottom)+5.5rem)]">
         {children}
       </main>
-      <BottomNav />
+      <Suspense
+        fallback={
+          <div className="fixed bottom-0 left-0 z-10 h-16 w-full border-t bg-background pb-[env(safe-area-inset-bottom)]" />
+        }
+      >
+        <BottomNav />
+      </Suspense>
     </div>
   );
 }
